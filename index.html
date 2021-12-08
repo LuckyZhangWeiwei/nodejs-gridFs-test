@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script
+      src="https://code.jquery.com/jquery-2.2.4.min.js"
+      integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body>
+    <!-- Upload form -->
+    <form id="form-gridfs">
+      <label for="file-input">Upload your file:</label>
+      <input id="file-input" type="file" name="file" accept="*" />
+      <br />
+      <span style="color: green" id="success-msg"></span>
+      <span style="color: red" id="fail-msg"></span>
+    </form>
+    <br />
+    <!-- Javascript functions -->
+    <script>
+      $(document).ready(function () {
+        $("#file-input").on("change", uploadFile);
+      });
+      function uploadFile() {
+        $.ajax({
+          url: "/upload",
+          type: "POST",
+          data: new FormData($("#form-gridfs")[0]),
+          enctype: "multipart/form-data",
+          processData: false,
+          contentType: false,
+          cache: false,
+          success: function () {
+            $("#success-msg").text("File uploaded succesfully!");
+          },
+          error: function () {
+            $("#fail-msg").text(
+              "Oops something went wrong! File not uploaded!!"
+            );
+          },
+        });
+      }
+    </script>
+  </body>
+</html>
