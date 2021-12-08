@@ -7,7 +7,6 @@ const fs = require("fs");
 const multer = require("multer");
 const { GridFsStorage } = require("multer-gridfs-storage");
 const bodyparser = require("body-parser");
-const Grid = require("gridfs-stream");
 
 app.use(bodyparser.json());
 
@@ -26,8 +25,6 @@ const conn = mongoose.createConnection(mongouri, {
 let gfs;
 
 conn.once("open", () => {
-  // gfs = Grid(conn.db, mongoose.mongo);
-  // gfs.collection("userdocs");
   gfs = new mongoose.mongo.GridFSBucket(conn.db, { bucketName: "userdocs" });
 });
 
@@ -88,42 +85,38 @@ app.get("/files", (req, res) => {
 });
 
 //search files by original name
-app.get("/file/:filename", (req, res) => {
-  gfs.findOne({ filename: req.params.filename }, (err, file) => {
-    if (!file || file.length === 0) {
-      return res.status(404).json({
-        err: "No file exist",
-      });
-    } else {
-      const readstream = gfs.createReadStream(file.filename);
-      readstream.pipe(res);
-    }
-  });
+app.get("/file/:fileId", async (req, res) => {
+  let files = await gfs
+    .find({
+      _id: new mongoose.mongo.ObjectId(req.params.fileId),
+    })
+    .toArray();
+  if (files && files.length) {
+    const readstream = gfs.openDownloadStream(
+      new mongoose.mongo.ObjectId(req.params.fileId)
+    );
+    readstream.pipe(res);
+  } else {
+    return res.status(404).json({
+      err: "No file exist",
+    });
+  }
 });
 
-app.get("/delete/:filename", async (req, res) => {
-  // gfs.findOne({ filename: req.params.filename }, (err, file) => {
-  //   if (!file || file.length === 0) {
-  //     return res.status(404).json({
-  //       err: "No file exist",
-  //     });
-  //   } else {
-  //     // gfs.files.deleteMany(
-  //     //   { filename: { $eq: req.params.filename } },
-  //     //   (err, result) => {
-  //     //     return res.status(200).json({
-  //     //       info: "deleted",
-  //     //     });
-  //     //   }
-  //     // );
-  //     gfs.remove({ filename: { $eq: req.params.filename } });
-  //   }
-  // });
-  // console.log(gfs);
-  let files = await gfs.find({ filename: req.params.filename }).toArray();
-  console.log("files", files);
-  await gfs.delete(files[0]._id);
-  return "deleted";
+app.get("/delete/:fileId", async (req, res) => {
+  let files = await gfs
+    .find({ _id: new mongoose.mongo.ObjectId(req.params.fileId) })
+    .toArray();
+  if (files && files.length) {
+    await gfs.delete(files[0]._id);
+    return res.status(200).json({
+      err: "successful",
+    });
+  } else {
+    return res.status(404).json({
+      err: "No file exist",
+    });
+  }
 });
 
 const port = 3001;
